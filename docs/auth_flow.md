@@ -4,13 +4,13 @@ description: Authentication and Authorization Flow
 
 # Authentication & Authorization Flow
 
-![SettleIn Logo](./images/flow (1).png)
+![SettleIn Logo](./images/flow%20(1).png)
 
 SettleIn uses Supabase Auth with Magic Links to provide a passwordless, secure, and user-friendly authentication experience.
 
 ### Sign-in / Sign-up Flow
 
-![Sign Up Screen](./images/flow (35).png)
+![Sign Up Screen](./images/flow%20(35).png)
 
 1.  **Entry Point**: User visits `/login` or `/signup`.
 2.  **Magic Link Request**:

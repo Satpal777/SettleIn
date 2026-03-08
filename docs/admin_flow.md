@@ -4,7 +4,7 @@ description: Administrator Oversight Workflow
 
 # Admin Workflow
 
-![SettleIn Logo](./images/flow (1).png)
+![SettleIn Logo](./images/flow%20(1).png)
 
 The Admin workflow ensures system integrity, user trust, and overall platform oversight.
 
