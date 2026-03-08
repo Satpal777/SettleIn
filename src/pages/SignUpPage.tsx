@@ -14,7 +14,7 @@ export default function SignUpPage() {
         setLoading(true)
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
-            options: { redirectTo: `${window.location.origin}` },
+            options: { redirectTo: `${window.location.origin}/dashboard` },
         })
         if (error) setError(error.message)
         setLoading(false)
@@ -27,7 +27,7 @@ export default function SignUpPage() {
         const { error } = await supabase.auth.signInWithOtp({
             email,
             options: {
-                emailRedirectTo: `${window.location.origin}`,
+                emailRedirectTo: `${window.location.origin}/dashboard`,
                 shouldCreateUser: true,
             },
         })
