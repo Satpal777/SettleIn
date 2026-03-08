@@ -567,18 +567,28 @@ export default function SeekerListingsPage() {
                                     <h2 className="text-lg font-black uppercase tracking-tight mb-4 flex items-center gap-3">
                                         <ShieldCheck className="w-5 h-5 text-highlight" /> Property Rules
                                     </h2>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {selectedProperty.house_rules && typeof selectedProperty.house_rules !== 'string' && selectedProperty.house_rules.length > 0 ? (
-                                            (selectedProperty.house_rules as string[]).map((rule, i) => (
-                                                <div key={i} className="flex items-center gap-3 p-4 bg-background border border-secondary/15 rounded-sm hover:border-secondary/40 transition-colors shadow-sm">
-                                                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                                                    <span className="text-sm font-semibold text-headline">{rule}</span>
-                                                </div>
-                                            ))
+                                    {(() => {
+                                        let rules: string[] = [];
+                                        try {
+                                            rules = typeof selectedProperty.house_rules === 'string'
+                                                ? JSON.parse(selectedProperty.house_rules)
+                                                : (Array.isArray(selectedProperty.house_rules) ? selectedProperty.house_rules : []);
+                                        } catch (e) {
+                                            rules = [];
+                                        }
+                                        return rules && rules.length > 0 ? (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {rules.map((rule, i) => (
+                                                    <div key={i} className="flex items-center gap-3 p-4 bg-background border border-secondary/15 rounded-sm hover:border-secondary/40 transition-colors shadow-sm">
+                                                        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                                                        <span className="text-sm font-semibold text-headline">{rule}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         ) : (
                                             <p className="text-sm italic text-paragraph/60 bg-secondary/5 p-4 rounded-sm border border-dashed border-secondary/10 w-full col-span-2">No custom rules specified.</p>
-                                        )}
-                                    </div>
+                                        );
+                                    })()}
                                 </section>
 
                                 <section>

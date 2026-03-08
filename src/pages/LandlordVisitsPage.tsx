@@ -31,7 +31,7 @@ export default function LandlordVisitsPage() {
                     title,
                     landlord_id
                 ),
-                profiles!visits_seeker_id_fkey (
+                profiles (
                     full_name
                 )
             `)

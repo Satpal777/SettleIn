@@ -267,17 +267,27 @@ export default function ListingDetailsPage() {
                             <h2 className="text-sm font-extrabold uppercase tracking-widest mb-4 flex items-center gap-2">
                                 <ShieldCheck className="w-4 h-4 text-paragraph" /> Property Rules
                             </h2>
-                            {property.house_rules && property.house_rules.length > 0 ? (
-                                <ul className="space-y-2 text-sm text-paragraph">
-                                    {property.house_rules.map((rule: string) => (
-                                        <li key={rule} className="flex gap-2">
-                                            <span className="text-highlight font-bold">•</span> {rule}
-                                        </li>
-                                    ))}
-                                </ul>
-                            ) : (
-                                <p className="text-sm text-paragraph italic">No specific house rules documented.</p>
-                            )}
+                            {(() => {
+                                let rules: string[] = [];
+                                try {
+                                    rules = typeof property.house_rules === 'string'
+                                        ? JSON.parse(property.house_rules)
+                                        : (Array.isArray(property.house_rules) ? property.house_rules : []);
+                                } catch (e) {
+                                    rules = [];
+                                }
+                                return rules && rules.length > 0 ? (
+                                    <ul className="space-y-2 text-sm text-paragraph">
+                                        {rules.map((rule: string) => (
+                                            <li key={rule} className="flex gap-2">
+                                                <span className="text-highlight font-bold">•</span> {rule}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p className="text-sm text-paragraph italic">No specific house rules documented.</p>
+                                );
+                            })()}
                         </section>
 
                         {/* Location / Map */}
