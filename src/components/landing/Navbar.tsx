@@ -4,9 +4,7 @@ import { useTheme } from '../../context/ThemeContext'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../supabaseClient'
 
-const NAV_LINKS = [
-    { label: 'Help', href: '/help' },
-]
+const NAV_LINKS: { label: string; href: string }[] = []
 
 function HouseLogo() {
     return (

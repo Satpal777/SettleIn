@@ -63,12 +63,12 @@ export default function Hero() {
                             </Link>
                         )}
 
-                        <a
-                            href="#how-it-works"
+                        <Link
+                            to="/help"
                             className="inline-flex items-center justify-center gap-2 border-2 border-secondary/30 text-headline text-sm font-semibold px-7 py-3 rounded-sm hover:border-highlight/60 hover:text-highlight transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-highlight"
                         >
                             See how it works
-                        </a>
+                        </Link>
                     </div>
                 </div>
 

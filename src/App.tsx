@@ -7,6 +7,7 @@ import { AuthProvider } from './context/AuthContext'
 import LandingPage from './pages/LandingPage'
 import SignInPage from './pages/SignInPage'
 import SignUpPage from './pages/SignUpPage'
+import HelpPage from './pages/HelpPage'
 
 // Guards
 import ProtectedRoute from './components/shared/ProtectedRoute'
@@ -73,6 +74,7 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<SignInPage />} />
           <Route path="/signup" element={<SignUpPage />} />
+          <Route path="/help" element={<HelpPage />} />
 
           {/* ── Protected (login required) ─────────────────────────── */}
           <Route element={<ProtectedRoute />}>

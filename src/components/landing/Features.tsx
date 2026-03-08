@@ -5,7 +5,7 @@ export default function Features() {
     return (
         <section id="features" className="bg-background py-24 sm:py-32 px-6 sm:px-10 overflow-hidden relative">
 
-            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-secondary/20 to-transparent" />
+            <div className="absolute top-0 inset-x-0 h-px bg-linear-to-r from-transparent via-secondary/20 to-transparent" />
             <div className="absolute -top-40 -right-40 w-96 h-96 bg-highlight/5 rounded-full blur-3xl pointer-events-none" />
             <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-secondary/5 rounded-full blur-3xl pointer-events-none" />
 
@@ -31,9 +31,7 @@ export default function Features() {
                         <h3 className="text-3xl sm:text-4xl font-extrabold text-headline tracking-tight">
                             Discover homes that match your lifestyle.
                         </h3>
-                        <p className="text-lg text-paragraph leading-relaxed">
-                            Browse verified listings with filters for budget, location, and move-in dates. Shortlist your favorites, compare amenities side-by-side, and find the perfect match without the noise.
-                        </p>
+
                         <ul className="space-y-3 pt-4">
                             {['Location & budget filters', 'Side-by-side property comparisons', 'Curated, verified landlord listings'].map(item => (
                                 <li key={item} className="flex items-center gap-3 text-sm font-semibold text-headline">
@@ -44,9 +42,9 @@ export default function Features() {
                         </ul>
                     </div>
                     <div className="flex-1 w-full relative group">
-                        <div className="absolute inset-0 bg-gradient-to-tr from-highlight/10 to-transparent rounded-2xl md:rounded-3xl blur-2xl group-hover:blur-3xl transition-all duration-500 opacity-60 pointer-events-none"></div>
+                        <div className="absolute inset-0 bg-linear-to-tr from-highlight/10 to-transparent rounded-2xl md:rounded-3xl blur-2xl group-hover:blur-3xl transition-all duration-500 opacity-60 pointer-events-none"></div>
                         <div className="relative rounded-2xl md:rounded-3xl border border-secondary/15 bg-background shadow-2xl p-2 z-10 overflow-hidden transform group-hover:-translate-y-1 transition-transform duration-500">
-                            <img src="/tenant_discovery.png" alt="Property Discovery UI" className="w-full h-auto rounded-xl md:rounded-2xl border border-secondary/10 object-cover" />
+                            <img src="/discovery.png" alt="Property Discovery UI" className="w-full h-auto rounded-xl md:rounded-2xl border border-secondary/10 object-cover" />
                         </div>
                     </div>
                 </div>
@@ -59,9 +57,6 @@ export default function Features() {
                         <h3 className="text-3xl sm:text-4xl font-extrabold text-headline tracking-tight">
                             Schedule tours instantly.
                         </h3>
-                        <p className="text-lg text-paragraph leading-relaxed">
-                            Book property visits directly through the platform. Pick a time that works for you, get landlord confirmation, and track all your scheduled visits.
-                        </p>
                         <ul className="space-y-3 pt-4">
                             {['One-click visit requests', 'Status tracking (Requested → Scheduled)'].map(item => (
                                 <li key={item} className="flex items-center gap-3 text-sm font-semibold text-headline">
@@ -72,9 +67,9 @@ export default function Features() {
                         </ul>
                     </div>
                     <div className="flex-1 w-full relative group">
-                        <div className="absolute inset-0 bg-gradient-to-tr from-secondary/10 to-transparent rounded-2xl md:rounded-3xl blur-2xl group-hover:blur-3xl transition-all duration-500 opacity-60 pointer-events-none"></div>
+                        <div className="absolute inset-0 bg-linear-to-tr from-secondary/10 to-transparent rounded-2xl md:rounded-3xl blur-2xl group-hover:blur-3xl transition-all duration-500 opacity-60 pointer-events-none"></div>
                         <div className="relative rounded-2xl md:rounded-3xl border border-secondary/15 bg-background shadow-2xl p-2 z-10 overflow-hidden transform group-hover:-translate-y-1 transition-transform duration-500">
-                            <img src="/tenant_booking.png" alt="Visit Booking UI" className="w-full h-auto rounded-xl md:rounded-2xl border border-secondary/10 object-cover" />
+                            <img src="/booking.png" alt="Visit Booking UI" className="w-full h-auto rounded-xl md:rounded-2xl border border-secondary/10 object-cover" />
                         </div>
                     </div>
                 </div>
@@ -89,9 +84,6 @@ export default function Features() {
                         <h3 className="text-3xl sm:text-4xl font-extrabold text-headline tracking-tight">
                             A seamless digital move-in process.
                         </h3>
-                        <p className="text-lg text-paragraph leading-relaxed">
-                            Turn the most stressful part of moving into a straightforward checklist. Upload documents, sign agreements, and manage support tickets or extension requests directly from your tenant dashboard.
-                        </p>
                         <ul className="space-y-3 pt-4">
                             {['Step-by-step move-in checklists', 'Secure document uploads & tracking', 'Integrated support ticketing system'].map(item => (
                                 <li key={item} className="flex items-center gap-3 text-sm font-semibold text-headline">
@@ -103,9 +95,9 @@ export default function Features() {
                     </div>
                     {/* Image */}
                     <div className="flex-1 w-full relative group">
-                        <div className="absolute inset-0 bg-gradient-to-tr from-tertiary/10 to-transparent rounded-2xl md:rounded-3xl blur-2xl group-hover:blur-3xl transition-all duration-500 opacity-60 pointer-events-none"></div>
+                        <div className="absolute inset-0 bg-linear-to-tr from-tertiary/10 to-transparent rounded-2xl md:rounded-3xl blur-2xl group-hover:blur-3xl transition-all duration-500 opacity-60 pointer-events-none"></div>
                         <div className="relative rounded-2xl md:rounded-3xl border border-secondary/15 bg-background shadow-2xl p-2 z-10 overflow-hidden transform group-hover:-translate-y-1 transition-transform duration-500">
-                            <img src="/dashboard_checklist.png" alt="Move-in Checklist UI" className="w-full h-auto rounded-xl md:rounded-2xl border border-secondary/10 object-cover" />
+                            <img src="/checklist.png" alt="Move-in Checklist UI" className="w-full h-auto rounded-xl md:rounded-2xl border border-secondary/10 object-cover" />
                         </div>
                     </div>
                 </div>
