@@ -32,7 +32,7 @@ export default function ImageDialog({ isOpen, onClose, images, currentIndex, onI
     }
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 md:p-10 animate-[fadeIn_0.2s_ease-out]">
+        <div className={`fixed inset-0 z-100 flex items-center justify-center p-4 transition-all duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
             <div className="absolute top-0 left-0 right-0 p-6 flex items-center justify-between text-white bg-linear-to-b from-black/60 to-transparent z-20">
                 <span className="text-xs font-black tracking-widest uppercase">
                     Image {currentIndex + 1} of {images.length}

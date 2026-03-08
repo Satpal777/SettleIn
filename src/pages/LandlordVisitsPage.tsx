@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Calendar, Check, X, ArrowRight } from 'lucide-react'
+import { Calendar, Check, X, ArrowRight, AlertCircle } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
@@ -29,19 +29,37 @@ export default function LandlordVisitsPage() {
                 properties!inner (
                     id,
                     title,
-                    landlord_id
+                    landlord_id,
+                    status
                 ),
-                profiles (
+                profiles!visits_seeker_id_fkey (
                     full_name
                 )
             `)
             .eq('properties.landlord_id', user!.id)
             .order('scheduled_at', { ascending: false })
 
+        // Fetch open tickets for this landlord
+        const { data: ticketsData } = await supabase
+            .from('tickets')
+            .select('id, property_id, seeker_id')
+            .eq('landlord_id', user!.id)
+            .neq('status', 'resolved')
+
         if (error) {
             console.error("Error fetching landlord visits:", error)
         } else if (data) {
-            setVisits(data)
+            let mappedVisits = data;
+            if (ticketsData) {
+                mappedVisits = data.map(v => {
+                    const propId = Array.isArray(v.properties) ? v.properties[0]?.id : (v.properties as any)?.id;
+                    const openTicket = ticketsData.find(t => t.property_id === propId && t.seeker_id === v.seeker_id);
+                    return { ...v, openTicket };
+                });
+            }
+            // Filter out visits for properties that are already rented
+            const activeVisits = mappedVisits.filter(v => (v.properties as any)?.status !== 'rented');
+            setVisits(activeVisits)
         }
         setLoading(false)
     }
@@ -182,6 +200,15 @@ export default function LandlordVisitsPage() {
                                                             'bg-secondary/10 text-paragraph'}`}>
                                                 {visit.status.replace('_', ' ')}
                                             </span>
+
+                                            {visit.openTicket && (
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); navigate('/landlord/tickets', { state: { ticketId: visit.openTicket.id } }) }}
+                                                    className="text-[9px] font-bold text-highlight uppercase tracking-wider flex items-center gap-1 bg-highlight/10 px-1.5 py-0.5 rounded-sm border border-highlight/20 hover:bg-highlight/20 transition-colors"
+                                                >
+                                                    <AlertCircle className="w-3 h-3" /> Open Issue
+                                                </button>
+                                            )}
 
                                             {visit.status === 'requested' && (
                                                 <div className="flex gap-2">

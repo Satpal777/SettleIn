@@ -17,15 +17,6 @@ export default function SeekerVisitsPage() {
         async function fetchVisits() {
             setLoading(true)
 
-            // 1. Fetch completed move-ins to filter visits
-            const { data: completedMoveIns } = await supabase
-                .from('move_ins')
-                .select('property_id')
-                .eq('seeker_id', user!.id)
-                .eq('status', 'complete');
-
-            const completedPropertyIds = new Set(completedMoveIns?.map(m => m.property_id) || []);
-
             // 2. Fetch visits
             const { data, error } = await supabase
                 .from('visits')
@@ -39,6 +30,7 @@ export default function SeekerVisitsPage() {
                         title,
                         address,
                         city,
+                        status,
                         property_images (url)
                     ),
                     landlord:properties(landlord_id) 
@@ -49,8 +41,8 @@ export default function SeekerVisitsPage() {
             if (error) {
                 console.error("Error fetching visits:", error)
             } else if (data) {
-                // Filter out visits for properties where move-in is already complete
-                const activeVisits = data.filter(v => !completedPropertyIds.has((v.properties as any)?.id));
+                // Filter out visits for properties that are already rented (by anyone)
+                const activeVisits = data.filter(v => (v.properties as any)?.status !== 'rented');
                 setVisits(activeVisits)
             }
             setLoading(false)

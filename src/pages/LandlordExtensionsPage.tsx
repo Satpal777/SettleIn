@@ -102,7 +102,7 @@ export default function LandlordExtensionsPage() {
     }
 
     return (
-        <div className="bg-background text-headline min-h-screen animate-[fadeIn_0.25s_ease-out]">
+        <div className="bg-background text-headline min-h-screen">
             <header className="border-b border-secondary/10 bg-background sticky top-0 z-20">
                 <div className="max-w-6xl mx-auto px-6 py-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                     <div>
@@ -120,7 +120,7 @@ export default function LandlordExtensionsPage() {
                 ) : (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {extensions.map(ext => (
-                            <div key={ext.id} className="bg-background border-2 border-headline/10 rounded-sm p-6 hover:border-highlight/30 transition-all shadow-sm flex flex-col justify-between gap-4 group">
+                            <div key={ext.id} className="bg-background border border-secondary/15 rounded-sm p-6 hover:border-highlight/30 transition-all flex flex-col justify-between gap-4 group">
                                 <div>
                                     <div className="flex items-start justify-between mb-4">
                                         <div>
@@ -135,7 +135,7 @@ export default function LandlordExtensionsPage() {
                                         </span>
                                     </div>
 
-                                    <div className="bg-secondary/5 p-4 rounded-sm border-2 border-secondary/10 mb-4">
+                                    <div className="bg-secondary/5 p-4 rounded-sm border border-secondary/15 mb-4">
                                         <div className="flex items-center justify-between">
                                             <div>
                                                 <p className="text-[10px] text-paragraph uppercase font-black tracking-widest mb-1">Requested Until</p>
@@ -153,8 +153,8 @@ export default function LandlordExtensionsPage() {
                                     )}
 
                                     {ext.landlordNote && (
-                                        <div className="p-3 bg-highlight/5 border-l-4 border-highlight rounded-sm">
-                                            <p className="text-[10px] font-black uppercase text-highlight mb-1">Your Note</p>
+                                        <div className="p-3 bg-highlight/5 border-l-2 border-highlight rounded-sm">
+                                            <p className="text-[10px] font-black uppercase text-highlight mb-1 tracking-wider">Your Note</p>
                                             <p className="text-xs font-bold text-headline">{ext.landlordNote}</p>
                                         </div>
                                     )}
@@ -163,7 +163,7 @@ export default function LandlordExtensionsPage() {
                                 {ext.status === 'pending' && (
                                     <button
                                         onClick={() => setSelectedExt(ext)}
-                                        className="w-full mt-4 py-3 bg-headline text-background font-black uppercase tracking-widest hover:opacity-90 transition-opacity flex items-center justify-center gap-2 text-xs border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                                        className="w-full mt-4 py-2 bg-headline text-background font-black uppercase tracking-widest hover:opacity-90 transition-opacity flex items-center justify-center gap-2 text-xs border border-headline/10 shadow-sm rounded-sm"
                                     >
                                         Review Request
                                     </button>
@@ -182,25 +182,24 @@ export default function LandlordExtensionsPage() {
                 )}
             </main>
 
-            {/* Review Modal */}
             {selectedExt && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-headline/40 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]">
-                    <div className="bg-background border-4 border-headline w-full max-w-lg p-8 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] relative">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-headline/20 backdrop-blur-sm transition-all animate-[fadeIn_0.2s_ease-out]">
+                    <div className="bg-background border border-secondary/15 w-full max-w-lg p-8 shadow-2xl relative rounded-sm">
                         <button
                             onClick={() => setSelectedExt(null)}
-                            className="absolute top-4 right-4 p-1 hover:bg-secondary/10 rounded-full transition-colors"
+                            className="absolute top-4 right-4 p-2 hover:bg-secondary/10 rounded-full transition-colors"
                         >
-                            <X className="w-6 h-6" />
+                            <X className="w-5 h-5" />
                         </button>
 
                         <div className="mb-8">
-                            <h2 className="text-3xl font-black uppercase tracking-tighter mb-2">Review Extension</h2>
+                            <h2 className="text-2xl font-black uppercase tracking-tighter mb-2">Review Extension</h2>
                             <p className="text-sm font-bold text-paragraph">
                                 <span className="text-highlight font-black">{selectedExt.tenant}</span> is requesting more time at <span className="font-black text-headline">{selectedExt.property}</span>
                             </p>
                         </div>
 
-                        <div className="mb-8 p-4 bg-secondary/5 border-2 border-secondary/10 rounded-sm">
+                        <div className="mb-8 p-4 bg-secondary/5 border border-secondary/15 rounded-sm">
                             <p className="text-[10px] font-black uppercase tracking-widest text-paragraph mb-1">Proposed Stay End</p>
                             <p className="text-xl font-black text-highlight">{selectedExt.requestedUntil}</p>
                         </div>
@@ -219,14 +218,14 @@ export default function LandlordExtensionsPage() {
                             <button
                                 onClick={() => handleUpdateStatus('rejected')}
                                 disabled={submitting}
-                                className="py-4 bg-red-500 text-white font-black uppercase tracking-widest hover:opacity-90 disabled:opacity-50 transition-all border-2 border-black flex items-center justify-center gap-2"
+                                className="py-3 bg-red-500 text-white font-black uppercase tracking-widest hover:opacity-90 disabled:opacity-50 transition-all border border-black/10 flex items-center justify-center gap-2 rounded-sm shadow-md active:scale-[0.98]"
                             >
                                 <XCircle className="w-5 h-5" /> Reject
                             </button>
                             <button
                                 onClick={() => handleUpdateStatus('approved')}
                                 disabled={submitting}
-                                className="py-4 bg-green-500 text-white font-black uppercase tracking-widest hover:opacity-90 disabled:opacity-50 transition-all border-2 border-black flex items-center justify-center gap-2"
+                                className="py-3 bg-green-500 text-white font-black uppercase tracking-widest hover:opacity-90 disabled:opacity-50 transition-all border border-black/10 flex items-center justify-center gap-2 rounded-sm shadow-md active:scale-[0.98]"
                             >
                                 <Check className="w-5 h-5" /> Approve
                             </button>

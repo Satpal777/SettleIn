@@ -1,5 +1,6 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, ClipboardList, MessageSquare, Users, BarChart3, LogOut } from 'lucide-react'
+import { LayoutDashboard, ClipboardList, MessageSquare, Users, BarChart3, LogOut, Sun, Moon } from 'lucide-react'
+import { useTheme } from '../../context/ThemeContext'
 import { supabase } from '../../supabaseClient'
 import { useAuth } from '../../context/AuthContext'
 import { useProfile } from '../../hooks/useProfile'
@@ -19,6 +20,7 @@ const NAV_ITEMS = [
 export default function AdminLayout() {
     const location = useLocation()
     const navigate = useNavigate()
+    const { dark, toggleDark } = useTheme()
     const { user } = useAuth()
     const { profile, setActiveView } = useProfile()
 
@@ -44,6 +46,13 @@ export default function AdminLayout() {
                     {isAdmin && (
                         <ViewSwitcher activeView="admin" onSwitch={handleViewSwitch} isAdmin={isAdmin} variant="icon-only" />
                     )}
+                    <button
+                        onClick={toggleDark}
+                        className="p-2 text-paragraph hover:text-headline transition-colors"
+                        title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+                    >
+                        {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                    </button>
                     <button
                         onClick={() => supabase.auth.signOut()}
                         className="p-2 text-paragraph hover:text-headline transition-colors"
@@ -105,6 +114,14 @@ export default function AdminLayout() {
                             <ViewSwitcher activeView="admin" onSwitch={handleViewSwitch} isAdmin={isAdmin} variant="vertical" />
                         </div>
                     )}
+
+                    <button
+                        onClick={toggleDark}
+                        className="flex items-center gap-3 px-3 py-2 text-sm font-semibold text-paragraph hover:text-headline transition-colors rounded-sm hover:bg-secondary/5"
+                    >
+                        {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                        {dark ? 'Light Mode' : 'Dark Mode'}
+                    </button>
 
                     <button
                         onClick={() => supabase.auth.signOut()}

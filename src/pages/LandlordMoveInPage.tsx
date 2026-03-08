@@ -73,7 +73,6 @@ export default function LandlordMoveInPage() {
                     .from('move_ins')
                     .update({
                         status: 'agreement',
-                        agreement_url: 'https://fake-storage.com/lease.pdf'
                     })
                     .eq('id', move.id);
                 if (error) throw error;
@@ -154,7 +153,6 @@ export default function LandlordMoveInPage() {
                                         </div>
                                     </div>
 
-                                    {/* Progress Tracker */}
                                     <div className="flex items-center justify-between relative py-2 mb-2">
                                         <div className="absolute top-12 left-0 right-0 h-0.5 bg-secondary/10 -translate-y-1/2 z-0 mx-8"></div>
                                         {steps.map((step, i) => (
@@ -167,7 +165,6 @@ export default function LandlordMoveInPage() {
                                         ))}
                                     </div>
 
-                                    {/* Tenant Documents */}
                                     <div className="bg-secondary/5 border border-secondary/10 rounded-sm p-4">
                                         <div className="flex items-center justify-between mb-3">
                                             <h4 className="text-[10px] font-bold uppercase tracking-widest text-paragraph">Tenant Documents</h4>

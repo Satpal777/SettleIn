@@ -1,5 +1,6 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Home, CalendarDays, Key, MessageSquare, Clock, PlusCircle, LogOut } from 'lucide-react'
+import { LayoutDashboard, Home, CalendarDays, Key, MessageSquare, Clock, PlusCircle, LogOut, Sun, Moon } from 'lucide-react'
+import { useTheme } from '../../context/ThemeContext'
 import { supabase } from '../../supabaseClient'
 import { useAuth } from '../../context/AuthContext'
 import { useProfile } from '../../hooks/useProfile'
@@ -22,6 +23,7 @@ export default function LandlordLayout() {
     const { profile, setActiveView } = useProfile()
     const navigate = useNavigate()
     const location = useLocation()
+    const { dark, toggleDark } = useTheme()
 
     const name = profile?.full_name ?? user?.email ?? 'Landlord'
     const hasBothRoles = profile?.is_seeker && profile?.is_landlord
@@ -47,6 +49,13 @@ export default function LandlordLayout() {
                     {showSwitcher && (
                         <ViewSwitcher activeView="landlord" onSwitch={handleViewSwitch} isAdmin={isAdmin} variant="icon-only" />
                     )}
+                    <button
+                        onClick={toggleDark}
+                        className="p-2 text-paragraph hover:text-headline transition-colors"
+                        title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+                    >
+                        {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                    </button>
                     <button
                         onClick={() => supabase.auth.signOut()}
                         className="p-2 text-paragraph hover:text-headline transition-colors"
@@ -118,6 +127,14 @@ export default function LandlordLayout() {
                             <ViewSwitcher activeView="landlord" onSwitch={handleViewSwitch} isAdmin={isAdmin} variant="vertical" />
                         </div>
                     )}
+
+                    <button
+                        onClick={toggleDark}
+                        className="flex items-center gap-3 px-3 py-2 text-sm font-semibold text-paragraph hover:text-headline transition-colors rounded-sm hover:bg-secondary/5"
+                    >
+                        {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                        {dark ? 'Light Mode' : 'Dark Mode'}
+                    </button>
 
                     <button
                         onClick={() => supabase.auth.signOut()}

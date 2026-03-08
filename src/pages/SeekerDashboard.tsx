@@ -1,209 +1,309 @@
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useProfile } from '../hooks/useProfile'
-import { Home, Search, Heart, CalendarDays, CheckSquare, MessageSquare } from 'lucide-react'
+import { Heart, CalendarDays, CheckSquare, MessageSquare, ArrowRight, MapPin, FileText, Clock, Home, Search } from 'lucide-react'
+import { supabase } from '../supabaseClient'
 
 export default function SeekerDashboard() {
     const { user } = useAuth()
     const { profile } = useProfile()
-    const name = profile?.full_name ?? user?.email ?? 'there'
+    const name = profile?.full_name ?? user?.email?.split('@')[0] ?? 'there'
+
+    const [hasCompletedMoveIn, setHasCompletedMoveIn] = useState(false)
+    const [stats, setStats] = useState({
+        shortlisted: 0,
+        upcomingVisits: 0,
+        pendingTasks: 0,
+        documents: 0
+    })
+    const [upcomingVisit, setUpcomingVisit] = useState<any>(null)
+    const [shortlisted, setShortlisted] = useState<any[]>([])
+    const [activeMoveIn, setActiveMoveIn] = useState<any>(null)
+    const [activities, setActivities] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        if (!user) return
+        fetchDashboardData()
+    }, [user])
+
+    const fetchDashboardData = async () => {
+        setLoading(true)
+        try {
+            const { count: shortlistCount, data: shortlistData } = await supabase
+                .from('shortlists')
+                .select('*, properties(*, property_images(url))', { count: 'exact' })
+                .eq('seeker_id', user!.id)
+                .limit(2)
+
+            const { count: visitCount, data: visitData } = await supabase
+                .from('visits')
+                .select('*, properties(*, property_images(url))', { count: 'exact' })
+                .eq('seeker_id', user!.id)
+                .in('status', ['requested', 'scheduled'])
+                .order('scheduled_at', { ascending: true })
+
+            const { data: moveInData } = await supabase
+                .from('move_ins')
+                .select('*, properties(*)')
+                .eq('seeker_id', user!.id)
+                .order('created_at', { ascending: false })
+
+            const completedMoveIn = moveInData?.find(m => m.status === 'complete')
+            const latestActiveMoveIn = moveInData?.find(m => m.status !== 'complete')
+
+            setHasCompletedMoveIn(!!completedMoveIn)
+
+            const { count: docCount } = await supabase
+                .from('move_in_documents')
+                .select('*', { count: 'exact', head: true })
+                .eq('uploader_id', user!.id)
+
+            const recentActivities = []
+            if (completedMoveIn) {
+                recentActivities.push({
+                    title: 'Welcome Home!',
+                    desc: `Your move-in to ${completedMoveIn.properties.title} is complete.`,
+                    time: 'Member since ' + new Date(completedMoveIn.created_at).toLocaleDateString(),
+                    color: 'bg-highlight'
+                })
+            } else if (visitData?.[0]) {
+                recentActivities.push({
+                    title: `Visit ${visitData[0].status}`,
+                    desc: `${visitData[0].properties.title} scheduled for ${new Date(visitData[0].scheduled_at).toLocaleDateString()}`,
+                    time: 'Recently Updated',
+                    color: 'bg-highlight'
+                })
+            }
+            if (latestActiveMoveIn) {
+                recentActivities.push({
+                    title: 'Move-in Active',
+                    desc: `Checklist active for ${latestActiveMoveIn.properties.title}`,
+                    time: 'Ongoing',
+                    color: 'bg-tertiary'
+                })
+            }
+
+            setStats({
+                shortlisted: shortlistCount || 0,
+                upcomingVisits: !!completedMoveIn ? 0 : (visitCount || 0),
+                pendingTasks: latestActiveMoveIn ? 3 : 0,
+                documents: docCount || 0
+            })
+            setUpcomingVisit(!!completedMoveIn ? null : (visitData?.[0] || null))
+            setShortlisted(shortlistData || [])
+            setActiveMoveIn(latestActiveMoveIn || null)
+            setActivities(recentActivities)
+        } catch (err) {
+            console.error("Dashboard error:", err)
+        } finally {
+            setLoading(false)
+        }
+    }
 
     return (
-        <div className="bg-background text-headline animate-[fadeIn_0.25s_ease-out]">
+        <div className="bg-background text-headline">
             <main className="max-w-6xl mx-auto px-6 py-8">
 
-                {/* Header Row */}
                 <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
                     <div>
                         <h1 className="text-2xl font-extrabold mb-1 tracking-tight">Welcome back, {name}</h1>
-                        <p className="text-sm text-paragraph">You have 3 visits scheduled this week and 5 pending move-in tasks.</p>
+                        <p className="text-sm text-paragraph">
+                            {hasCompletedMoveIn
+                                ? "Home sweet home! Manage your stay and requests here."
+                                : stats.upcomingVisits > 0
+                                    ? `You have ${stats.upcomingVisits} upcoming visits scheduled.`
+                                    : "Explore properties and start your journey home."}
+                        </p>
                     </div>
                 </div>
 
-                {/* Metrics Row */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                    <MetricCard label="Shortlisted" value="12 Properties" icon={<Heart className="w-5 h-5" />} highlightText="+2 new" />
-                    <MetricCard label="Upcoming Visits" value="3 Scheduled" icon={<CalendarDays className="w-5 h-5 text-highlight" />} />
-                    <MetricCard label="Move-in Tasks" value="5 Pending" icon={<CheckSquare className="w-5 h-5 text-tertiary" />} />
-                    <MetricCard label="Documents" value="8 Uploaded" icon={<Search className="w-5 h-5" />} />
-                </div>
+                {loading ? (
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 animate-pulse">
+                        {[1, 2, 3, 4].map(i => <div key={i} className="h-24 bg-secondary/5 border-2 border-headline/10 rounded-sm"></div>)}
+                    </div>
+                ) : (
+                    <>
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                            <MetricCard label="Shortlisted" value={`${stats.shortlisted} Properties`} icon={<Heart className="w-5 h-5 text-highlight" />} />
+                            {!hasCompletedMoveIn && (
+                                <MetricCard label="Upcoming Visits" value={`${stats.upcomingVisits} Scheduled`} icon={<CalendarDays className="w-5 h-5 text-highlight" />} />
+                            )}
+                            <MetricCard label="Move-in Progress" value={activeMoveIn ? activeMoveIn.status.toUpperCase() : hasCompletedMoveIn ? 'SUCCESS' : 'Inactive'} icon={<CheckSquare className="w-5 h-5 text-tertiary" />} highlightText={hasCompletedMoveIn ? "Resident" : undefined} />
+                            <MetricCard label="Documents" value={`${stats.documents} Uploaded`} icon={<FileText className="w-5 h-5 text-secondary" />} />
+                        </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                    {/* Left Column (Wider) */}
-                    <div className="lg:col-span-2 space-y-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                            {/* Left Column (Wider) */}
+                            <div className="lg:col-span-2 space-y-6">
 
-                        {/* Upcoming Visit Card */}
-                        <section className="bg-background border-2 border-headline rounded-sm p-6 shadow-[4px_4px_0_theme(colors.secondary/10)]">
-                            <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-sm font-extrabold tracking-widest uppercase flex items-center gap-2">
-                                    <span className="w-2 h-2 rounded-full bg-highlight block animate-pulse"></span>
-                                    Upcoming Visit
-                                </h2>
-                                <Link to="/seeker/visits" className="text-xs font-bold text-highlight hover:underline">View Calendar</Link>
-                            </div>
+                                {!hasCompletedMoveIn && (
+                                    <>
+                                        {upcomingVisit ? (
+                                            <section className="bg-background border border-highlight/20 rounded-sm p-6">
+                                                <div className="flex items-center justify-between mb-6">
+                                                    <h2 className="text-sm font-extrabold tracking-widest uppercase flex items-center gap-2">
+                                                        <span className="w-2.5 h-2.5 rounded-full bg-highlight"></span>
+                                                        Upcoming Visit
+                                                    </h2>
+                                                    <Link to="/seeker/visits" className="text-xs font-black uppercase tracking-widest text-highlight hover:underline decoration-2 underline-offset-4">View All</Link>
+                                                </div>
 
-                            <div className="flex flex-col sm:flex-row gap-6 mb-8 border-b border-secondary/10 pb-6">
-                                <div className="w-full sm:w-48 h-32 bg-secondary/5 rounded-sm overflow-hidden shrink-0 border border-secondary/10">
-                                    <img src="/platform-visit.png" alt="Property" className="w-full h-full object-cover opacity-80 mix-blend-multiply" />
-                                </div>
-                                <div className="flex-1">
-                                    <div className="flex items-start justify-between mb-2">
-                                        <h3 className="text-lg font-bold">Emerald Gardens - Apt 4B</h3>
-                                        <span className="text-[10px] font-bold text-highlight bg-highlight/10 px-2 py-0.5 rounded-sm uppercase tracking-wider">Scheduled</span>
-                                    </div>
-                                    <p className="text-sm text-paragraph mb-4 flex items-center gap-1.5">
-                                        <Search className="w-3.5 h-3.5" /> 123 Green Valley, Silicon City
-                                    </p>
+                                                <div className="flex flex-col sm:flex-row gap-6 mb-2">
+                                                    <div className="w-full sm:w-48 h-32 bg-secondary/5 rounded-sm overflow-hidden shrink-0 border border-secondary/10">
+                                                        <img src={upcomingVisit.properties.property_images?.[0]?.url || "/platform-visit.png"} alt="Property" className="w-full h-full object-cover" />
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <div className="flex items-start justify-between mb-2">
+                                                            <h3 className="text-xl font-black tracking-tight">{upcomingVisit.properties.title}</h3>
+                                                            <span className="text-[10px] font-black text-white bg-highlight px-2 py-0.5 rounded-sm uppercase tracking-wider">{upcomingVisit.status}</span>
+                                                        </div>
+                                                        <p className="text-sm font-bold text-paragraph mb-4 flex items-center gap-1.5 line-clamp-1">
+                                                            <MapPin className="w-4 h-4 text-highlight" /> {upcomingVisit.properties.address}, {upcomingVisit.properties.city}
+                                                        </p>
 
-                                    <div className="flex gap-6 text-sm font-semibold">
-                                        <div className="flex items-center gap-2">
-                                            <CalendarDays className="w-4 h-4 text-paragraph" /> Tomorrow, Oct 24
+                                                        <div className="flex gap-6 text-sm font-black uppercase tracking-tight">
+                                                            <div className="flex items-center gap-2 bg-secondary/5 px-3 py-1.5 border border-secondary/10 rounded-sm text-paragraph">
+                                                                <CalendarDays className="w-4 h-4 text-highlight" /> {new Date(upcomingVisit.scheduled_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                            </div>
+                                                            <div className="flex items-center gap-2 bg-secondary/5 px-3 py-1.5 border border-secondary/10 rounded-sm text-paragraph">
+                                                                <Clock className="w-4 h-4 text-highlight" /> {upcomingVisit.scheduled_at ? new Date(upcomingVisit.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'TBD'}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </section>
+                                        ) : (
+                                            <div className="bg-secondary/5 border border-dashed border-secondary/20 rounded-sm p-12 text-center">
+                                                <p className="text-sm font-black text-headline uppercase tracking-widest mb-6">No upcoming visits</p>
+                                                <Link to="/seeker/listings" className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-button-text bg-highlight px-6 py-3 rounded-sm">
+                                                    Start Discovering <Search className="w-4 h-4" />
+                                                </Link>
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+
+                                {hasCompletedMoveIn && (
+                                    <section className="bg-background border border-highlight/30 rounded-sm p-8 text-center relative overflow-hidden">
+                                        <div className="relative z-10">
+                                            <div className="w-16 h-16 bg-tertiary/10 rounded-full border border-tertiary/30 flex items-center justify-center mx-auto mb-6">
+                                                <Home className="w-10 h-10 text-tertiary" />
+                                            </div>
+                                            <h2 className="text-2xl font-black uppercase tracking-tighter mb-3">Welcome Home!</h2>
+                                            <p className="text-sm font-bold text-headline mb-8 max-w-sm mx-auto leading-relaxed">
+                                                Your residency is active. Your home dashboard is now available for managing property details, house rules, and extensions.
+                                            </p>
+                                            <Link to="/seeker/move-in" className="inline-flex items-center gap-3 px-10 py-4 bg-tertiary text-button-text font-black uppercase tracking-widest text-sm border border-headline/10 rounded-sm">
+                                                Open Resident Portal <ArrowRight className="w-5 h-5" />
+                                            </Link>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <CheckSquare className="w-4 h-4 text-paragraph" /> 10:30 AM
+                                    </section>
+                                )}
+
+                                {shortlisted.length > 0 && (
+                                    <section>
+                                        <div className="flex items-center justify-between mb-4">
+                                            <h2 className="text-sm font-extrabold tracking-widest uppercase">My Shortlist</h2>
+                                            <Link to="/seeker/shortlist" className="text-xs font-bold text-paragraph hover:text-headline transition-colors flex items-center gap-1">View All ({stats.shortlisted}) <ArrowRight className="w-3 h-3" /></Link>
                                         </div>
-                                    </div>
-                                    <div className=" mt-4 bg-secondary/5 px-4 py-2 text-xs text-paragraph border border-secondary/10 rounded-sm">
-                                        Agent <strong className="text-headline">Sarah Connor</strong> will meet you at the main gate.
-                                    </div>
-                                </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            {shortlisted.map((s: any) => (
+                                                <ShortlistCard
+                                                    key={s.id}
+                                                    name={s.properties.title}
+                                                    price={`₹${s.properties.price.toLocaleString()}/mo`}
+                                                    image={s.properties.property_images?.[0]?.url || "/platform-discovery.png"}
+                                                />
+                                            ))}
+                                        </div>
+                                    </section>
+                                )}
+
                             </div>
 
-                            {/* Timeline */}
-                            <div className="relative">
-                                <p className="text-[10px] font-bold text-paragraph/70 uppercase tracking-widest mb-4">Visit Status Timeline</p>
-                                <div className="flex items-center justify-between relative px-4">
-                                    <div className="absolute top-1/2 left-8 right-8 h-0.5 bg-secondary/20 -translate-y-1/2 z-0"></div>
-                                    <div className="absolute top-1/2 left-8 right-1/2 h-0.5 bg-highlight -translate-y-1/2 z-0"></div>
+                            {/* Right Column (Narrower) */}
+                            <div className="space-y-6">
 
-                                    <TimelineStep icon={<CheckSquare className="w-4 h-4" />} label="Requested" active />
-                                    <TimelineStep icon={<CalendarDays className="w-4 h-4" />} label="Scheduled" active current />
-                                    <TimelineStep icon={<Home className="w-4 h-4" />} label="Visited" />
-                                </div>
+                                {activeMoveIn && (
+                                    <section className="bg-background border border-secondary/15 rounded-sm p-6">
+                                        <h2 className="text-sm font-extrabold tracking-widest uppercase flex items-center gap-2 mb-6">
+                                            <CheckSquare className="w-5 h-5 text-tertiary" /> Move-in Status
+                                        </h2>
+
+                                        <div className="mb-6">
+                                            <p className="text-xs font-bold text-headline mb-2">{activeMoveIn.properties.title}</p>
+                                            <div className="flex justify-between text-[10px] font-black uppercase tracking-widest mb-2">
+                                                <span className="text-paragraph">Status: {activeMoveIn.status}</span>
+                                            </div>
+                                            <div className="h-2 w-full bg-secondary/10 rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full bg-tertiary"
+                                                    style={{ width: activeMoveIn.status === 'complete' ? '100%' : activeMoveIn.status === 'inventory' ? '75%' : activeMoveIn.status === 'agreement' ? '50%' : '25%' }}
+                                                ></div>
+                                            </div>
+                                        </div>
+
+                                        <Link to="/seeker/move-in" className="w-full flex items-center justify-center gap-2 py-2.5 bg-background border border-secondary/20 text-[10px] font-black uppercase tracking-widest hover:bg-secondary/5 transition-all rounded-sm">
+                                            View Checklist <ArrowRight className="w-3 h-3" />
+                                        </Link>
+                                    </section>
+                                )}
+
+                                {activities.length > 0 && (
+                                    <section className="bg-background border border-secondary/15 rounded-sm p-6">
+                                        <h2 className="text-sm font-extrabold tracking-widest uppercase flex items-center gap-2 mb-6">
+                                            <MessageSquare className="w-5 h-5 text-paragraph" /> Recent Activity
+                                        </h2>
+                                        <div className="space-y-6 border-l border-secondary/20 ml-2 pl-4">
+                                            {activities.map((act, i) => (
+                                                <ActivityItem key={i} title={act.title} desc={act.desc} time={act.time} color={act.color} />
+                                            ))}
+                                        </div>
+                                    </section>
+                                )}
                             </div>
-                        </section>
-
-                        {/* Shortlisted Properties */}
-                        <section>
-                            <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-sm font-extrabold tracking-widest uppercase">Shortlisted Properties</h2>
-                                <Link to="/seeker/shortlist" className="text-xs font-bold text-paragraph hover:text-headline transition-colors flex items-center gap-1">View All (12) <Search className="w-3 h-3" /></Link>
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <ShortlistCard name="Skyline View Residences" price="₹1,80,000/mo" image="/platform-discovery.png" />
-                                <ShortlistCard name="The Pine District Studio" price="₹85,000/mo" image="/platform-movein.png" />
-                            </div>
-                        </section>
-
-                    </div>
-
-                    {/* Right Column (Narrower) */}
-                    <div className="space-y-6">
-
-                        {/* Tasks */}
-                        <section className="bg-background border-2 border-headline rounded-sm p-6 shadow-[4px_4px_0_theme(colors.secondary/10)]">
-                            <h2 className="text-sm font-extrabold tracking-widest uppercase flex items-center gap-2 mb-6">
-                                <CheckSquare className="w-5 h-5 text-tertiary" /> Move-in Tasks
-                            </h2>
-
-                            <div className="mb-6">
-                                <div className="flex justify-between text-xs font-semibold mb-2">
-                                    <span className="text-paragraph">Overall Progress</span>
-                                    <span className="text-highlight font-bold">60%</span>
-                                </div>
-                                <div className="h-2 w-full bg-secondary/10 rounded-full overflow-hidden">
-                                    <div className="h-full bg-highlight w-[60%]"></div>
-                                </div>
-                            </div>
-
-                            <div className="space-y-3">
-                                <TaskItem title="Upload ID Verification" completed />
-                                <TaskItem title="Proof of Employment" completed />
-                                <TaskItem title="Sign Digital Lease Agreement" active />
-                                <TaskItem title="Pay Security Deposit" />
-                                <TaskItem title="Submit Rental Reference" />
-                            </div>
-
-                            <Link to="/seeker/move-in" className="mt-6 block text-[10px] font-bold text-paragraph/70 uppercase tracking-widest hover:text-headline transition-colors">
-                                Go to Task Center →
-                            </Link>
-                        </section>
-
-                        {/* Activity Feed */}
-                        <section className="bg-background border border-secondary/15 rounded-sm p-6">
-                            <h2 className="text-sm font-extrabold tracking-widest uppercase flex items-center gap-2 mb-6">
-                                <MessageSquare className="w-5 h-5 text-paragraph" /> Recent Activity
-                            </h2>
-                            <div className="space-y-6 border-l border-secondary/20 ml-2 pl-4">
-                                <ActivityItem title="Visit scheduled" desc="Emerald Gardens visit confirmed for Oct 24." time="2 hours ago" color="bg-highlight" />
-                                <ActivityItem title="Checklist completed" desc="You uploaded 'Proof of Employment'." time="Yesterday, 4:15 PM" color="bg-tertiary" />
-                                <ActivityItem title="Ticket response received" desc="Agent Sarah replied to your query." time="Oct 21, 10:00 AM" color="bg-secondary" />
-                            </div>
-                        </section>
-
-                    </div>
-                </div>
+                        </div>
+                    </>
+                )}
 
             </main>
         </div>
     )
 }
 
-/* ── Sub-components ───────────────────────────────────────────────────────── */
 
 function MetricCard({ label, value, icon, highlightText }: { label: string, value: string, icon: React.ReactNode, highlightText?: string }) {
     return (
-        <div className="bg-background border-2 border-headline rounded-sm p-4 shadow-[3px_3px_0_theme(colors.secondary/10)] hover:translate-y-[-2px] hover:shadow-[5px_5px_0_theme(colors.secondary/15)] transition-all flex flex-col justify-between">
+        <div className="bg-background border border-secondary/15 rounded-sm p-4 flex flex-col justify-between">
             <div className="flex items-start justify-between mb-4">
-                <div className="w-8 h-8 rounded-sm bg-secondary/5 flex items-center justify-center border border-secondary/10">
+                <div className="w-10 h-10 rounded-sm bg-secondary/5 flex items-center justify-center border border-secondary/10">
                     {icon}
                 </div>
-                {highlightText && <span className="text-[10px] font-bold text-highlight bg-highlight/10 px-2 py-0.5 rounded-sm">{highlightText}</span>}
+                {highlightText && <span className="text-[10px] font-black text-background bg-headline px-2 py-0.5 rounded-sm uppercase tracking-tighter italic">{highlightText}</span>}
             </div>
             <div>
-                <p className="text-[10px] font-bold text-paragraph/70 uppercase tracking-widest">{label}</p>
-                <p className="text-lg font-extrabold tracking-tight mt-0.5">{value}</p>
+                <p className="text-[10px] font-black text-paragraph uppercase tracking-widest mb-1">{label}</p>
+                <p className="text-xl font-black tracking-tight leading-none italic">{value}</p>
             </div>
         </div>
     )
 }
 
-function TimelineStep({ icon, label, active, current }: { icon: React.ReactNode, label: string, active?: boolean, current?: boolean }) {
-    return (
-        <div className="flex flex-col items-center gap-2 z-10 bg-background px-2">
-            <div className={`w-10 h-10 flex items-center justify-center rounded-sm border-2 ${active ? 'border-headline shadow-[3px_3px_0_theme(colors.headline)]' : 'border-secondary/20'} ${current ? 'bg-highlight/10 text-highlight' : (active ? 'bg-background text-headline' : 'bg-secondary/5 text-paragraph/40')}`}>
-                {icon}
-            </div>
-            <span className={`text-[10px] font-bold uppercase tracking-wider ${active ? 'text-headline' : 'text-paragraph/40'}`}>{label}</span>
-        </div>
-    )
-}
 
-function TaskItem({ title, completed, active }: { title: string, completed?: boolean, active?: boolean }) {
-    return (
-        <label className={`flex items-center gap-3 p-3 border rounded-sm cursor-pointer transition-colors ${active ? 'border-highlight/30 bg-highlight/5' : 'border-secondary/15 hover:bg-secondary/5'} ${completed ? 'opacity-60' : ''}`}>
-            <div className={`w-4 h-4 rounded-sm border flex items-center justify-center shrink-0 ${completed ? 'bg-highlight border-highlight' : 'border-secondary/30'}`}>
-                {completed && <CheckSquare className="w-3 h-3 text-button-text" />}
-            </div>
-            <span className={`text-xs font-semibold flex-1 ${completed ? 'line-through text-paragraph' : 'text-headline'}`}>{title}</span>
-            {active && <span className="text-[10px] font-bold text-highlight uppercase tracking-wider">→</span>}
-        </label>
-    )
-}
 
 function ShortlistCard({ name, price, image }: { name: string, price: string, image: string }) {
     return (
-        <div className="border border-secondary/15 rounded-sm p-3 group hover:border-highlight/30 transition-colors bg-background">
-            <div className="w-full h-32 bg-secondary/5 rounded-sm mb-3 overflow-hidden relative border border-secondary/10">
-                <img src={image} alt={name} className="w-full h-full object-cover opacity-80 mix-blend-multiply group-hover:scale-105 transition-transform duration-500" />
-                <div className="absolute top-2 right-2 w-6 h-6 bg-background rounded-full flex items-center justify-center shadow-sm">
-                    <Heart className="w-3.5 h-3.5 text-highlight fill-highlight" />
-                </div>
-                <div className="absolute bottom-2 left-2 bg-headline text-background text-[10px] font-bold px-2 py-1 rounded-sm tracking-wider">
-                    {price}
-                </div>
+        <div className="bg-background border border-secondary/15 rounded-sm p-3 flex items-center gap-4 cursor-pointer">
+            <div className="w-16 h-16 rounded-sm bg-secondary/5 overflow-hidden border border-secondary/10 shrink-0">
+                <img src={image} alt={name} className="w-full h-full object-cover" />
             </div>
-            <h3 className="text-sm font-bold truncate">{name}</h3>
+            <div className="flex-1 min-w-0">
+                <h4 className="text-sm font-black truncate leading-tight uppercase tracking-tight">{name}</h4>
+                <p className="text-[10px] font-black text-highlight">{price}</p>
+            </div>
+            <ArrowRight className="w-4 h-4 text-paragraph" />
         </div>
     )
 }
@@ -212,9 +312,9 @@ function ActivityItem({ title, desc, time, color }: { title: string, desc: strin
     return (
         <div className="relative">
             <div className={`absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full ${color}`}></div>
-            <p className="text-xs font-bold text-headline mb-0.5">{title}</p>
-            <p className="text-[11px] text-paragraph mb-1.5">{desc}</p>
-            <p className="text-[9px] text-paragraph/50 uppercase tracking-widest font-semibold">{time}</p>
+            <p className="text-xs font-black text-headline mb-0.5 tracking-tight uppercase">{title}</p>
+            <p className="text-[11px] font-bold text-paragraph mb-1.5 leading-relaxed">{desc}</p>
+            <p className="text-[9px] font-black text-paragraph/40 uppercase tracking-widest italic">{time}</p>
         </div>
     )
 }

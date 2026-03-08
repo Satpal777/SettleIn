@@ -1,48 +1,98 @@
-import { useState } from 'react'
-import { MessageSquare, CheckCircle2, AlertCircle, Clock, Plus, ArrowLeft, Send } from 'lucide-react'
-
-// Mock Data
-const TICKETS = [
-    {
-        id: 'TKT-001',
-        title: 'Query about pet policy',
-        status: 'Resolved',
-        date: 'Oct 21, 2026',
-        lastMessage: 'Agent Sarah replied: Yes, small dogs are allowed with an additional deposit.',
-        property: 'Emerald Gardens - Apt 4B',
-        thread: [
-            { id: 'm1', sender: 'seeker', text: 'Hi, are pets allowed here?', time: 'Oct 21, 10:00 AM' },
-            { id: 'm2', sender: 'agent', name: 'Sarah Connor', text: 'Yes, small dogs are allowed with an additional deposit.', time: 'Oct 21, 11:30 AM' }
-        ]
-    },
-    {
-        id: 'TKT-002',
-        title: 'Gym amenity access hours',
-        status: 'Open',
-        date: 'Oct 23, 2026',
-        lastMessage: 'You asked: What are the exact timings for the building gym?',
-        property: 'Emerald Gardens - Apt 4B',
-        thread: [
-            { id: 'm1', sender: 'seeker', text: 'What are the exact timings for the building gym?', time: 'Oct 23, 02:15 PM' }
-        ]
-    },
-    {
-        id: 'TKT-003',
-        title: 'Lease name correction',
-        status: 'Open',
-        date: 'Oct 24, 2026',
-        lastMessage: 'You asked: Can we update the middle initial on the draft agreement?',
-        property: 'General Inquiry',
-        thread: [
-            { id: 'm1', sender: 'seeker', text: 'Can we update the middle initial on the draft agreement?', time: 'Oct 24, 09:00 AM' }
-        ]
-    }
-]
+import { useState, useEffect } from 'react'
+import { MessageSquare, CheckCircle2, AlertCircle, Clock, ArrowLeft, Send } from 'lucide-react'
+import { supabase } from '../supabaseClient'
+import { useAuth } from '../context/AuthContext'
 
 export default function SeekerTicketsPage() {
+    const { user } = useAuth()
+    const [tickets, setTickets] = useState<any[]>([])
+    const [messages, setMessages] = useState<any[]>([])
+    const [newMessage, setNewMessage] = useState('')
     const [activeTicketId, setActiveTicketId] = useState<string | null>(null)
+    const [loading, setLoading] = useState(true)
 
-    const activeTicket = TICKETS.find(t => t.id === activeTicketId)
+    useEffect(() => {
+        if (!user) return;
+        fetchTickets();
+    }, [user])
+
+    const fetchTickets = async () => {
+        setLoading(true)
+        const { data, error } = await supabase
+            .from('tickets')
+            .select('*, properties:property_id(title)')
+            .eq('seeker_id', user!.id)
+            .order('created_at', { ascending: false });
+
+        if (!error && data) {
+            setTickets(data);
+        }
+        setLoading(false)
+    }
+
+    useEffect(() => {
+        if (!activeTicketId) {
+            setMessages([]);
+            return;
+        }
+
+        fetchMessages(activeTicketId);
+
+        const channel = supabase
+            .channel('ticket_messages_changes_tickets_page')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'ticket_messages',
+                    filter: `ticket_id=eq.${activeTicketId}`
+                },
+                (payload) => {
+                    setMessages(prev => [...prev, payload.new]);
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        }
+    }, [activeTicketId])
+
+    const fetchMessages = async (ticketId: string) => {
+        const { data, error } = await supabase
+            .from('ticket_messages')
+            .select('*, profiles:sender_id(full_name, role)')
+            .eq('ticket_id', ticketId)
+            .order('created_at', { ascending: true });
+
+        if (!error && data) {
+            setMessages(data);
+        }
+    }
+
+    const handleSendMessage = async () => {
+        if (!newMessage.trim() || !activeTicketId || !user) return;
+
+        const tempMessage = newMessage;
+        setNewMessage('');
+
+        const { error } = await supabase
+            .from('ticket_messages')
+            .insert({
+                ticket_id: activeTicketId,
+                sender_id: user.id,
+                body: tempMessage
+            });
+
+        if (error) {
+            console.error(error);
+            setNewMessage(tempMessage);
+            alert("Error sending message");
+        }
+    }
+
+    const activeTicket = tickets.find(t => t.id === activeTicketId)
 
     return (
         <div className="bg-background text-headline min-h-screen animate-[fadeIn_0.25s_ease-out]">
@@ -55,11 +105,6 @@ export default function SeekerTicketsPage() {
                         </h1>
                         <p className="text-sm text-paragraph">Track your questions, maintenance requests, and agent replies.</p>
                     </div>
-                    {!activeTicketId && (
-                        <button className="bg-headline text-background font-bold px-4 py-2.5 rounded-sm hover:opacity-90 transition-opacity flex items-center justify-center gap-2 text-sm shrink-0">
-                            <Plus className="w-4 h-4" /> New Ticket
-                        </button>
-                    )}
                 </div>
             </header>
 
@@ -80,52 +125,61 @@ export default function SeekerTicketsPage() {
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-1">
                                     <h2 className="text-sm font-bold truncate">{activeTicket.title}</h2>
-                                    <span className={`text-[9px] shrink-0 font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-sm ${activeTicket.status === 'Resolved' ? 'bg-tertiary/10 text-tertiary' : 'bg-highlight/10 text-highlight'}`}>
-                                        {activeTicket.status}
+                                    <span className={`text-[9px] shrink-0 font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-sm ${activeTicket.status === 'resolved' ? 'bg-tertiary/10 text-tertiary' : 'bg-highlight/10 text-highlight'}`}>
+                                        {activeTicket.status.replace('_', ' ')}
                                     </span>
                                 </div>
-                                <p className="text-xs text-paragraph flex items-center gap-2">
-                                    <span className="font-semibold">{activeTicket.id}</span>
-                                    <span className="w-1 h-1 rounded-full bg-secondary/30"></span>
-                                    <span className="truncate">{activeTicket.property}</span>
+                                <p className="text-xs text-paragraph flex flex-wrap items-center gap-2">
+                                    <span className="font-semibold">{activeTicket.id.split('-')[0]}</span>
+                                    <span className="w-1 h-1 rounded-full bg-secondary/30 hidden sm:block"></span>
+                                    <span className="truncate">{activeTicket.properties?.title || 'General Inquiry'}</span>
                                 </p>
                             </div>
                         </div>
 
                         {/* Thread Messages */}
-                        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-secondary/5 bg-[radial-gradient(var(--color-secondary)_1px,transparent_1px)] bg-size-[20px_20px] opacity-[0.98]">
-                            {activeTicket.thread.map(msg => (
-                                <div key={msg.id} className={`flex ${msg.sender === 'seeker' ? 'justify-end' : 'justify-start'}`}>
-                                    <div className={`max-w-[80%] ${msg.sender === 'seeker' ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
+                        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-secondary/5">
+                            {messages.map(msg => {
+                                const isMe = msg.sender_id === user?.id;
+                                const senderName = msg.profiles?.full_name || 'Agent';
+                                const time = new Date(msg.created_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 
-                                        {msg.sender === 'agent' && (
-                                            <span className="text-[10px] font-bold text-paragraph uppercase tracking-wider ml-1">{msg.name}</span>
-                                        )}
+                                return (
+                                    <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                                        <div className={`max-w-[80%] ${isMe ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
 
-                                        <div className={`p-4 rounded-sm border ${msg.sender === 'seeker'
-                                            ? 'bg-headline text-background border-headline rounded-tr-none'
-                                            : 'bg-background text-headline border-secondary/20 shadow-sm rounded-tl-none'
-                                            }`}>
-                                            <p className="text-sm leading-relaxed">{msg.text}</p>
+                                            {!isMe && (
+                                                <span className="text-[10px] font-bold text-paragraph uppercase tracking-wider ml-1">{senderName}</span>
+                                            )}
+
+                                            <div className={`p-4 rounded-sm border ${isMe
+                                                ? 'bg-headline text-background border-headline rounded-tr-none'
+                                                : 'bg-background text-headline border-secondary/20 shadow-sm rounded-tl-none'
+                                                }`}>
+                                                <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.body}</p>
+                                            </div>
+
+                                            <span className={`text-[10px] font-bold text-paragraph/60 uppercase tracking-widest flex items-center gap-1 ${isMe ? 'mr-1' : 'ml-1'}`}>
+                                                <Clock className="w-3 h-3" /> {time}
+                                            </span>
                                         </div>
-
-                                        <span className={`text-[10px] font-bold text-paragraph/60 uppercase tracking-widest flex items-center gap-1 ${msg.sender === 'seeker' ? 'mr-1' : 'ml-1'}`}>
-                                            <Clock className="w-3 h-3" /> {msg.time}
-                                        </span>
                                     </div>
-                                </div>
-                            ))}
+                                )
+                            })}
                         </div>
 
                         {/* Thread Input Area */}
-                        {activeTicket.status !== 'Resolved' ? (
+                        {activeTicket.status !== 'resolved' ? (
                             <div className="p-4 bg-background border-t border-secondary/10 flex gap-3">
                                 <input
                                     type="text"
                                     placeholder="Type your reply..."
                                     className="flex-1 bg-secondary/5 border border-secondary/20 rounded-sm px-4 py-2 text-sm focus:outline-none focus:border-highlight focus:ring-1 focus:ring-highlight transition-all"
+                                    value={newMessage}
+                                    onChange={e => setNewMessage(e.target.value)}
+                                    onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
                                 />
-                                <button className="bg-highlight hover:bg-highlight/90 text-button-text px-4 py-2 rounded-sm font-bold text-sm transition-colors flex items-center justify-center shadow-sm">
+                                <button onClick={handleSendMessage} className="bg-highlight hover:bg-highlight/90 text-button-text px-4 py-2 rounded-sm font-bold text-sm transition-colors flex items-center justify-center shadow-sm">
                                     <Send className="w-4 h-4 shrink-0" />
                                 </button>
                             </div>
@@ -141,47 +195,59 @@ export default function SeekerTicketsPage() {
                     <>
                         {/* ── Tabs ── */}
                         <div className="flex gap-4 mb-6 border-b border-secondary/10">
-                            <button className="text-sm font-bold text-headline pb-2 border-b-2 border-highlight px-1">All Tickets ({TICKETS.length})</button>
-                            <button className="text-sm font-semibold text-paragraph hover:text-headline pb-2 border-b-2 border-transparent hover:border-secondary/20 transition-colors px-1">Open (2)</button>
-                            <button className="text-sm font-semibold text-paragraph hover:text-headline pb-2 border-b-2 border-transparent hover:border-secondary/20 transition-colors px-1">Resolved (1)</button>
+                            <button className="text-sm font-bold text-headline pb-2 border-b-2 border-highlight px-1">All Tickets ({tickets.length})</button>
+                            <button className="text-sm font-semibold text-paragraph hover:text-headline pb-2 border-b-2 border-transparent hover:border-secondary/20 transition-colors px-1">Open ({tickets.filter(t => t.status !== 'resolved').length})</button>
+                            <button className="text-sm font-semibold text-paragraph hover:text-headline pb-2 border-b-2 border-transparent hover:border-secondary/20 transition-colors px-1">Resolved ({tickets.filter(t => t.status === 'resolved').length})</button>
                         </div>
 
-                        {/* ── Ticket List ── */}
-                        <div className="space-y-4">
-                            {TICKETS.map(ticket => (
-                                <div
-                                    key={ticket.id}
-                                    onClick={() => setActiveTicketId(ticket.id)}
-                                    className="bg-background border border-secondary/15 rounded-sm p-5 hover:border-headline/30 hover:shadow-sm transition-all cursor-pointer group flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-                                >
-                                    <div className="flex items-start gap-4">
-                                        <div className="mt-0.5">
-                                            {ticket.status === 'Resolved'
-                                                ? <CheckCircle2 className="w-5 h-5 text-tertiary" />
-                                                : <AlertCircle className="w-5 h-5 text-highlight" />}
-                                        </div>
-                                        <div>
-                                            <div className="flex flex-wrap items-center gap-2 mb-1">
-                                                <h3 className="text-sm font-bold group-hover:underline text-headline">{ticket.title}</h3>
-                                                <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-sm ${ticket.status === 'Resolved' ? 'bg-tertiary/10 text-tertiary' : 'bg-highlight/10 text-highlight'}`}>
-                                                    {ticket.status}
-                                                </span>
-                                                <span className="text-[10px] text-paragraph border border-secondary/20 px-1.5 py-0.5 rounded-sm bg-secondary/5 font-semibold">
-                                                    {ticket.property}
-                                                </span>
+                        {loading ? (
+                            <div className="text-sm text-paragraph font-semibold animate-pulse">Loading tickets...</div>
+                        ) : tickets.length === 0 ? (
+                            <div className="text-center py-20 border border-secondary/10 border-dashed rounded-sm bg-secondary/5">
+                                <MessageSquare className="w-10 h-10 text-secondary/40 mx-auto mb-3" />
+                                <h3 className="text-base font-bold text-headline mb-1">No Support Tickets</h3>
+                                <p className="text-xs text-paragraph mb-0">You haven't raised any queries or issues yet.</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {tickets.map(ticket => {
+                                    const dateDisplay = new Date(ticket.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+                                    return (
+                                        <div
+                                            key={ticket.id}
+                                            onClick={() => setActiveTicketId(ticket.id)}
+                                            className="bg-background border border-secondary/15 rounded-sm p-5 hover:border-headline/30 hover:shadow-sm transition-all cursor-pointer group flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                                        >
+                                            <div className="flex items-start gap-4">
+                                                <div className="mt-0.5">
+                                                    {ticket.status === 'resolved'
+                                                        ? <CheckCircle2 className="w-5 h-5 text-tertiary" />
+                                                        : <AlertCircle className="w-5 h-5 text-highlight" />}
+                                                </div>
+                                                <div>
+                                                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                                                        <h3 className="text-sm font-bold group-hover:underline text-headline">{ticket.title}</h3>
+                                                        <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-sm ${ticket.status === 'resolved' ? 'bg-tertiary/10 text-tertiary' : 'bg-highlight/10 text-highlight'}`}>
+                                                            {ticket.status.replace('_', ' ')}
+                                                        </span>
+                                                        <span className="text-[10px] text-paragraph border border-secondary/20 px-1.5 py-0.5 rounded-sm bg-secondary/5 font-semibold truncate max-w-[150px]">
+                                                            {ticket.properties?.title || 'General'}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-xs text-paragraph/80 max-w-xl truncate mt-1.5">Click to view thread messages</p>
+                                                </div>
                                             </div>
-                                            <p className="text-xs text-paragraph/80 max-w-xl truncate mt-1.5">{ticket.lastMessage}</p>
+                                            <div className="text-right shrink-0 sm:self-start flex flex-col items-end gap-2">
+                                                <p className="text-[10px] font-bold uppercase tracking-widest text-paragraph/60 flex items-center gap-1.5 justify-end">
+                                                    <Clock className="w-3 h-3" /> {dateDisplay}
+                                                </p>
+                                                <span className="text-[10px] text-paragraph border border-secondary/20 px-1.5 py-0.5 rounded-sm group-hover:border-headline/30 transition-colors">{ticket.id.split('-')[0]}</span>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="text-right shrink-0 sm:self-start flex flex-col items-end gap-2">
-                                        <p className="text-[10px] font-bold uppercase tracking-widest text-paragraph/60 flex items-center gap-1.5 justify-end">
-                                            <Clock className="w-3 h-3" /> {ticket.date}
-                                        </p>
-                                        <span className="text-[10px] text-paragraph border border-secondary/20 px-1.5 py-0.5 rounded-sm group-hover:border-headline/30 transition-colors">{ticket.id}</span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                                    )
+                                })}
+                            </div>
+                        )}
                     </>
                 )}
 
