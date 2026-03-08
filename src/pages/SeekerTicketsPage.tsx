@@ -10,6 +10,7 @@ export default function SeekerTicketsPage() {
     const [newMessage, setNewMessage] = useState('')
     const [activeTicketId, setActiveTicketId] = useState<string | null>(null)
     const [loading, setLoading] = useState(true)
+    const [activeTab, setActiveTab] = useState<'all' | 'open' | 'resolved'>('all')
 
     useEffect(() => {
         if (!user) return;
@@ -195,9 +196,24 @@ export default function SeekerTicketsPage() {
                     <>
                         {/* ── Tabs ── */}
                         <div className="flex gap-4 mb-6 border-b border-secondary/10">
-                            <button className="text-sm font-bold text-headline pb-2 border-b-2 border-highlight px-1">All Tickets ({tickets.length})</button>
-                            <button className="text-sm font-semibold text-paragraph hover:text-headline pb-2 border-b-2 border-transparent hover:border-secondary/20 transition-colors px-1">Open ({tickets.filter(t => t.status !== 'resolved').length})</button>
-                            <button className="text-sm font-semibold text-paragraph hover:text-headline pb-2 border-b-2 border-transparent hover:border-secondary/20 transition-colors px-1">Resolved ({tickets.filter(t => t.status === 'resolved').length})</button>
+                            <button
+                                onClick={() => setActiveTab('all')}
+                                className={`text-sm font-bold pb-2 px-1 transition-all ${activeTab === 'all' ? 'text-headline border-b-2 border-highlight' : 'text-paragraph border-b-2 border-transparent hover:text-headline'}`}
+                            >
+                                All Tickets ({tickets.length})
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('open')}
+                                className={`text-sm font-semibold pb-2 px-1 transition-all ${activeTab === 'open' ? 'text-headline border-b-2 border-highlight' : 'text-paragraph border-b-2 border-transparent hover:text-headline'}`}
+                            >
+                                Open ({tickets.filter(t => t.status !== 'resolved').length})
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('resolved')}
+                                className={`text-sm font-semibold pb-2 px-1 transition-all ${activeTab === 'resolved' ? 'text-headline border-b-2 border-highlight' : 'text-paragraph border-b-2 border-transparent hover:text-headline'}`}
+                            >
+                                Resolved ({tickets.filter(t => t.status === 'resolved').length})
+                            </button>
                         </div>
 
                         {loading ? (
@@ -210,42 +226,48 @@ export default function SeekerTicketsPage() {
                             </div>
                         ) : (
                             <div className="space-y-4">
-                                {tickets.map(ticket => {
-                                    const dateDisplay = new Date(ticket.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-                                    return (
-                                        <div
-                                            key={ticket.id}
-                                            onClick={() => setActiveTicketId(ticket.id)}
-                                            className="bg-background border border-secondary/15 rounded-sm p-5 hover:border-headline/30 hover:shadow-sm transition-all cursor-pointer group flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-                                        >
-                                            <div className="flex items-start gap-4">
-                                                <div className="mt-0.5">
-                                                    {ticket.status === 'resolved'
-                                                        ? <CheckCircle2 className="w-5 h-5 text-tertiary" />
-                                                        : <AlertCircle className="w-5 h-5 text-highlight" />}
-                                                </div>
-                                                <div>
-                                                    <div className="flex flex-wrap items-center gap-2 mb-1">
-                                                        <h3 className="text-sm font-bold group-hover:underline text-headline">{ticket.title}</h3>
-                                                        <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-sm ${ticket.status === 'resolved' ? 'bg-tertiary/10 text-tertiary' : 'bg-highlight/10 text-highlight'}`}>
-                                                            {ticket.status.replace('_', ' ')}
-                                                        </span>
-                                                        <span className="text-[10px] text-paragraph border border-secondary/20 px-1.5 py-0.5 rounded-sm bg-secondary/5 font-semibold truncate max-w-[150px]">
-                                                            {ticket.properties?.title || 'General'}
-                                                        </span>
+                                {tickets
+                                    .filter(ticket => {
+                                        if (activeTab === 'open') return ticket.status !== 'resolved';
+                                        if (activeTab === 'resolved') return ticket.status === 'resolved';
+                                        return true;
+                                    })
+                                    .map(ticket => {
+                                        const dateDisplay = new Date(ticket.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+                                        return (
+                                            <div
+                                                key={ticket.id}
+                                                onClick={() => setActiveTicketId(ticket.id)}
+                                                className="bg-background border border-secondary/15 rounded-sm p-5 hover:border-headline/30 hover:shadow-sm transition-all cursor-pointer group flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                                            >
+                                                <div className="flex items-start gap-4">
+                                                    <div className="mt-0.5">
+                                                        {ticket.status === 'resolved'
+                                                            ? <CheckCircle2 className="w-5 h-5 text-tertiary" />
+                                                            : <AlertCircle className="w-5 h-5 text-highlight" />}
                                                     </div>
-                                                    <p className="text-xs text-paragraph/80 max-w-xl truncate mt-1.5">Click to view thread messages</p>
+                                                    <div>
+                                                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                                                            <h3 className="text-sm font-bold group-hover:underline text-headline">{ticket.title}</h3>
+                                                            <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-sm ${ticket.status === 'resolved' ? 'bg-tertiary/10 text-tertiary' : 'bg-highlight/10 text-highlight'}`}>
+                                                                {ticket.status.replace('_', ' ')}
+                                                            </span>
+                                                            <span className="text-[10px] text-paragraph border border-secondary/20 px-1.5 py-0.5 rounded-sm bg-secondary/5 font-semibold truncate max-w-[150px]">
+                                                                {ticket.properties?.title || 'General'}
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-xs text-paragraph/80 max-w-xl truncate mt-1.5">Click to view thread messages</p>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right shrink-0 sm:self-start flex flex-col items-end gap-2">
+                                                    <p className="text-[10px] font-bold uppercase tracking-widest text-paragraph/60 flex items-center gap-1.5 justify-end">
+                                                        <Clock className="w-3 h-3" /> {dateDisplay}
+                                                    </p>
+                                                    <span className="text-[10px] text-paragraph border border-secondary/20 px-1.5 py-0.5 rounded-sm group-hover:border-headline/30 transition-colors">{ticket.id.split('-')[0]}</span>
                                                 </div>
                                             </div>
-                                            <div className="text-right shrink-0 sm:self-start flex flex-col items-end gap-2">
-                                                <p className="text-[10px] font-bold uppercase tracking-widest text-paragraph/60 flex items-center gap-1.5 justify-end">
-                                                    <Clock className="w-3 h-3" /> {dateDisplay}
-                                                </p>
-                                                <span className="text-[10px] text-paragraph border border-secondary/20 px-1.5 py-0.5 rounded-sm group-hover:border-headline/30 transition-colors">{ticket.id.split('-')[0]}</span>
-                                            </div>
-                                        </div>
-                                    )
-                                })}
+                                        )
+                                    })}
                             </div>
                         )}
                     </>
