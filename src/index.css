@@ -1,0 +1,91 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-background: #ffffff;
+  --color-headline: #1f1235;
+  --color-sub-headline: #1b1425;
+  --color-paragraph: #1b1425;
+  --color-button: #ff6e6c;
+  --color-button-text: #1f1235;
+  --color-illustration-stroke: #1f1235;
+  --color-illustration-main: #ffffff;
+  --color-highlight: #ff6e6c;
+  --color-secondary: #67568c;
+  --color-tertiary: #fbdd74;
+}
+
+:root:where(.dark) {
+  --color-background: #0f0e17;
+  --color-headline: #fffffe;
+  --color-sub-headline: #fffffe;
+  --color-paragraph: #a7a9be;
+  --color-button: #ff8906;
+  --color-button-text: #fffffe;
+  --color-illustration-stroke: #000000;
+  --color-illustration-main: #fffffe;
+  --color-highlight: #ff8906;
+  --color-secondary: #f25f4c;
+  --color-tertiary: #e53170;
+}
+
+:root {
+  font-family: monospace, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+}
+
+/* Match page background before React mounts — prevents white flash */
+html {
+  background-color: var(--color-background, #ffffff);
+}
+
+/* Smooth dark-mode color transitions */
+body {
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+}
+
+/* ── Keyframe animations ─────────────────────────────────────────────────── */
+
+@keyframes menuSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Respect user motion preferences */
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
